@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>斗牛多功能计算器</title>
+</head>
+
+<body>
+    <h1>斗牛多功能计算器</h1>
+    <h2>功能一：输入四张牌推荐压注及分析是否抢庄</h2>
+    <label for="card1">第一张牌（0 - 10）：</label>
+    <input type="number" id="card1" required><br>
+    <label for="card2">第二张牌（0 - 10）：</label>
+    <input type="number" id="card2" required><br>
+    <label for="card3">第三张牌（0 - 10）：</label>
+    <input type="number" id="card3" required><br>
+    <label for="card4">第四张牌（0 - 10）：</label>
+    <input type="number" id="card4" required><br>
+    <!-- <button onclick="calculateRecommendAndDecide()">计算推荐并决定是否抢庄</button> -->
+    <h2>功能二：输入第五张牌算出牛</h2>
+    <label for="card5">第五张牌（0 - 10）：</label>
+    <input type="number" id="card5" required><br>
+    <button onclick="calculateNiuWithFifthCard()">计算牛</button>
+    <button onclick="resetInputs()">重置</button>
+    <div id="result"></div>
+
+    <script>
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                if (document.activeElement.id === 'card5') {
+                    calculateNiuWithFifthCard();
+                } else {
+                    calculateRecommendAndDecide();
+                }
+            }
+        });
+
+        function calculateRecommendAndDecide() {
+            const card1 = parseInt(document.getElementById('card1').value);
+            const card2 = parseInt(document.getElementById('card2').value);
+            const card3 = parseInt(document.getElementById('card3').value);
+            const card4 = parseInt(document.getElementById('card4').value);
+
+            if (isNaN(card1) || isNaN(card2) || isNaN(card3) || isNaN(card4) ||
+                (card1 < 0 || card1 > 10) || (card2 < 0 || card2 > 10) ||
+                (card3 < 0 || card3 > 10) || (card4 < 0 || card4 > 10)) {
+                document.getElementById('result').innerHTML = "请输入0到10之间的有效数字！";
+                return;
+            }
+
+            const resultCounts = {};
+            for (let i = 0; i <= 10; i++) {
+                const allCards = [getAdjustedValue(card1), getAdjustedValue(card2), getAdjustedValue(card3), getAdjustedValue(card4), getAdjustedValue(i)];
+                let hasNiu = false;
+                let niuValue = 0;
+                for (let a = 0; a < 5; a++) {
+                    for (let b = a + 1; b < 5; b++) {
+                        for (let c = b + 1; c < 5; c++) {
+                            const sumOfThree = allCards[a] + allCards[b] + allCards[c];
+                            if (sumOfThree % 10 === 0) {
+                                hasNiu = true;
+                                const remainingSum = allCards.filter((_, index) => index!== a && index!== b && index!== c).reduce((acc, num) => acc + num, 0);
+                                niuValue = remainingSum % 10;
+                                if (niuValue === 0) {
+                                    niuValue = "牛牛";
+                                }
+                                break;
+                            }
+                        }
+                        if (hasNiu) break;
+                    }
+                    if (hasNiu) break;
+                }
+                const resultText = hasNiu? `牛${niuValue}` : "没牛";
+                if (!resultCounts[resultText]) {
+                    resultCounts[resultText] = 1;
+                } else {
+                    resultCounts[resultText]++;
+                }
+            }
+
+            const totalResults = 11;
+            for (const result in resultCounts) {
+                resultCounts[result] = (resultCounts[result] / totalResults * 100).toFixed(2) + '%';
+            }
+
+            let betRecommendation = '';
+            const sortedResults = Object.entries(resultCounts).sort((a, b) => parseFloat(b[1].replace('%', '')) - parseFloat(a[1].replace('%', '')));
+            const mostLikelyOutcome = sortedResults[0][0];
+            if (mostLikelyOutcome === "牛牛") {
+                betRecommendation = '50*';
+            } else if (mostLikelyOutcome.startsWith("牛") && parseInt(mostLikelyOutcome.slice(1)) >= 5) {
+                betRecommendation = '30*';
+            } else if (mostLikelyOutcome.startsWith("牛") && parseInt(mostLikelyOutcome.slice(1)) >= 3) {
+                betRecommendation = '20*';
+            } else {
+                betRecommendation = '10*';
+            }
+
+            let shouldRobBanker = false;
+            if (mostLikelyOutcome === "牛牛" || (mostLikelyOutcome.startsWith("牛") && parseInt(mostLikelyOutcome.slice(1)) >= 7)) {
+                shouldRobBanker = true;
+            }
+
+            let resultHtml = '概率分析：<br>';
+            for (const [outcome, probability] of sortedResults) {
+                resultHtml += `${outcome}：${probability}<br>`;
+            }
+            resultHtml += `<br>推荐压注：${betRecommendation}`;
+            resultHtml += `<br>是否抢庄：${shouldRobBanker? '是' : '否'}`;
+
+            document.getElementById('result').innerHTML = resultHtml;
+        }
+
+        function calculateNiuWithFifthCard() {
+            const card1 = parseInt(document.getElementById('card1').value);
+            const card2 = parseInt(document.getElementById('card2').value);
+            const card3 = parseInt(document.getElementById('card3').value);
+            const card4 = parseInt(document.getElementById('card4').value);
+            const card5 = parseInt(document.getElementById('card5').value);
+
+            if (isNaN(card1) || isNaN(card2) || isNaN(card3) || isNaN(card4) || isNaN(card5) ||
+                (card1 < 0 || card1 > 10) || (card2 < 0 || card2 > 10) ||
+                (card3 < 0 || card3 > 10) || (card4 < 0 || card4 > 10) || (card5 < 0 || card5 > 10)) {
+                document.getElementById('result').innerHTML = "请输入0到10之间的有效数字！";
+                return;
+            }
+
+            const allCards = [getAdjustedValue(card1), getAdjustedValue(card2), getAdjustedValue(card3), getAdjustedValue(card4), getAdjustedValue(card5)];
+            let hasNiu = false;
+            let niuValue = 0;
+            let threeCardCombination = [];
+            let twoCardCombination = [];
+
+            for (let a = 0; a < 5; a++) {
+                for (let b = a + 1; b < 5; b++) {
+                    for (let c = b + 1; c < 5; c++) {
+                        const sumOfThree = allCards[a] + allCards[b] + allCards[c];
+                        if (sumOfThree % 10 === 0) {
+                            hasNiu = true;
+                            threeCardCombination = [allCards[a], allCards[b], allCards[c]];
+                            twoCardCombination = allCards.filter((_, index) => index!== a && index!== b && index!== c);
+                            const remainingSum = twoCardCombination.reduce((acc, num) => acc + num, 0);
+                            niuValue = remainingSum % 10;
+                            if (niuValue === 0) {
+                                niuValue = "牛牛";
+                            }
+                            break;
+                        }
+                    }
+                    if (hasNiu) break;
+                }
+                if (hasNiu) break;
+            }
+
+            const resultText = hasNiu? `牛${niuValue}` : "没牛";
+            const displayThreeCards = threeCardCombination.map(card => card === 10? 0 : card);
+            const displayTwoCards = twoCardCombination.map(card => card === 10? 0 : card);
+
+            document.getElementById('result').innerHTML = `[ ${displayThreeCards.join(' ')} ] + ( ${displayTwoCards.join(' ')} )：${resultText}`;
+        }
+
+        function resetInputs() {
+            document.getElementById('card1').value = '';
+            document.getElementById('card2').value = '';
+            document.getElementById('card3').value = '';
+            document.getElementById('card4').value = '';
+            document.getElementById('card5').value = '';
+            document.getElementById('result').innerHTML = '';
+        }
+
+        function getAdjustedValue(value) {
+            return value === 0? 10 : value;
+        }
+    </script>
+</body>
+
+</html>
